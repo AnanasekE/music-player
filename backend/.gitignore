@@ -1,3 +1,4 @@
 music/
 .env
 .idea/
+songs.db

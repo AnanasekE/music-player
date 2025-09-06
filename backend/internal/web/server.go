@@ -3,8 +3,10 @@ package web
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
-	"music-player/internal/songs"
+	"music-player/internal/db"
+	"music-player/internal/utils"
 	"net/http"
 	"os"
 )
@@ -24,16 +26,25 @@ func StartServer() {
 
 func registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/tracks", func(w http.ResponseWriter, r *http.Request) {
-		allSongs := songs.GetAllSongs()
-		data, err := json.Marshal(allSongs)
-		if err != nil {
-			log.Fatal("Borked")
+		switch r.Method {
+		case http.MethodGet:
+			handleGetTracks(w)
+		case http.MethodPost:
+			handleAddTrack(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
-		w.Write(data)
 	})
 
 	fs := http.FileServer(http.Dir(os.Getenv("AUDIO_PATH")))
 	mux.Handle("/music/", http.StripPrefix("/music/", fs))
+
+	mux.HandleFunc("/audio-paths", func(w http.ResponseWriter, r *http.Request) {
+		paths := db.GetAllSongPaths()
+		data, err := json.Marshal(paths)
+		utils.Check(err)
+		w.Write([]byte(data))
+	})
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
@@ -49,4 +60,21 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func handleAddTrack(w http.ResponseWriter, r *http.Request) {
+	body, _ := io.ReadAll(r.Body)
+	var newTrack db.Song
+	if err := json.Unmarshal(body, &newTrack); err != nil {
+		http.Error(w, "Invalid json", http.StatusBadRequest)
+	}
+}
+
+func handleGetTracks(w http.ResponseWriter) {
+	songs := db.GetAllSongs()
+	data, err := json.Marshal(songs)
+	if err != nil {
+		http.Error(w, "Failed song marshal", http.StatusInternalServerError)
+	}
+	w.Write([]byte(data))
 }
