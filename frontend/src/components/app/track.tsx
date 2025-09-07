@@ -5,10 +5,9 @@ import {Button} from "@/components/ui/button.tsx";
 export interface TrackInfo {
     title: string;
     author: string;
-    imgSrc: string | null;
+    coverImg: string | null;
     lengthSec: number;
-    path: string;
-    fileName: string;
+    filePath: string;
 }
 
 interface SongProps {
@@ -21,8 +20,8 @@ const Track = ({track, onPlay}: SongProps) => {
         <Card className="max-w-lg m-2 p-2 flex flex-row items-center justify-between">
             <div className="flex flex-row items-center truncate">
                 <div className="ml-0.5 mr-2 min-w-10 min-h-10 max-w-10 max-h-10">
-                    {track.imgSrc ? (
-                        <img src={track.imgSrc} alt="image" className="w-10 h-10"/>
+                    {track.coverImg ? (
+                        <img src={track.coverImg} alt="image" className="w-10 h-10"/>
                     ) : (
                         <Skeleton className="w-10 h-10"/>
                     )}
