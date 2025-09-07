@@ -16,10 +16,11 @@ var (
 )
 
 type Song struct {
-	Title     string `json:"title"`
-	Author    string `json:"author"`
-	LengthSec int    `json:"lengthSec"`
-	FilePath  string `json:"filePath"`
+	Title     string  `json:"title"`
+	Author    string  `json:"author"`
+	LengthSec int     `json:"lengthSec"`
+	FilePath  string  `json:"filePath"`
+	CoverPath *string `json:"coverPath,omitempty"`
 }
 
 func LoadTracksMetadata() {
@@ -52,15 +53,18 @@ func AddSong(song Song) {
 	SaveTrackMetadata()
 }
 
-func RemoveSong(songId int) {
+func RemoveSong(title string) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	if songId < 0 || songId >= len(tracks) {
-		return
+	newTracks := make([]Song, 0, len(tracks))
+	for _, t := range tracks {
+		if t.Title != title {
+			newTracks = append(newTracks, t)
+		}
 	}
+	tracks = newTracks
 
-	tracks = append(tracks[:songId], tracks[songId+1:]...)
 	SaveTrackMetadata()
 }
 
@@ -100,4 +104,23 @@ func GetAllSongPaths() []string {
 	})
 	utils.Check(err)
 	return paths
+}
+
+func GetNotAddedSongPaths() []string {
+	paths := GetAllSongPaths()
+	allSongs := GetAllSongs()
+
+	addedPaths := make(map[string]struct{})
+	for _, song := range allSongs {
+		addedPaths[song.FilePath] = struct{}{}
+	}
+
+	var notAdded []string
+	for _, path := range paths {
+		if _, exists := addedPaths[path]; !exists {
+			notAdded = append(notAdded, path)
+		}
+	}
+
+	return notAdded
 }

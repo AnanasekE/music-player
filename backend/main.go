@@ -16,6 +16,5 @@ func main() {
 	}
 
 	db.LoadTracksMetadata()
-	// db.AddSong(db.Song{Title: "Bluest Flame", Author: "CerberVT", LengthSec: 147, FilePath: "'CerberVT - Bluest Flame by Benny Blanco and Selena Gomez.m4a'"})
 	web.StartServer()
 }
