@@ -2,6 +2,7 @@ package db
 
 import (
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"music-player/internal/utils"
 	"os"
@@ -123,4 +124,14 @@ func GetNotAddedSongPaths() []string {
 	}
 
 	return notAdded
+}
+
+func SaveFile(fileName string, fileData []byte) error {
+	audioPath := os.Getenv("AUDIO_PATH")
+	_, err := os.Stat(audioPath + fileName)
+	if errors.Is(err, os.ErrNotExist) {
+		return errors.New("File already exists")
+	}
+	os.WriteFile(audioPath+fileName, fileData, 0644)
+	return nil
 }

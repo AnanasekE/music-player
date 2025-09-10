@@ -5,9 +5,9 @@ function TrackList(props: { tracklist: TrackInfo[] | undefined, setCurrentTrack:
     return <Card className="flex-1 overflow-y-auto h-full">
         <CardTitle className="text-4xl m-4">Tracks</CardTitle>
         <CardContent>
-            <ol className="flex flex-col">
+            <ol className="flex flex-col items-center">
                 {props.tracklist?.map(track =>
-                    <li key={track.title}>
+                    <li key={track.title} className={"min-w-48"}>
                         <Track track={track} onPlay={() => props.setCurrentTrack(track)}/>
                     </li>
                 )}

@@ -54,7 +54,10 @@ func registerRoutes(mux *http.ServeMux) {
 	})
 
 	mux.HandleFunc("/upload-track", func(w http.ResponseWriter, r *http.Request) {
-		// TODO:
+		if r.Method == http.MethodPost {
+			handleUploadTrack(w, r)
+			return
+		}
 		http.Error(w, "Not Implemented", http.StatusNotImplemented)
 	})
 
@@ -122,4 +125,12 @@ func handleAddTrack(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte("Song added successfully"))
+}
+
+func handleUploadTrack(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
 }

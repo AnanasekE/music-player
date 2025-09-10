@@ -17,7 +17,7 @@ interface SongProps {
 
 const Track = ({track, onPlay}: SongProps) => {
     return (
-        <Card className="max-w-lg m-2 p-2 flex flex-row items-center justify-between">
+        <Card className="max-w-lg m-2 p-2 flex flex-row items-center justify-between min-w-96">
             <div className="flex flex-row items-center truncate">
                 <div className="ml-0.5 mr-2 min-w-10 min-h-10 max-w-10 max-h-10">
                     {track.coverImg ? (
