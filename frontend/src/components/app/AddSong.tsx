@@ -86,7 +86,7 @@ function AddSong() {
                                 <SelectValue placeholder="Choose existing file"/>
                             </SelectTrigger>
                             <SelectContent>
-                                {possibleSongPaths.map((path) => (
+                                {possibleSongPaths && possibleSongPaths.map((path) => (
                                     <SelectItem key={path} value={path}>
                                         {path}
                                     </SelectItem>

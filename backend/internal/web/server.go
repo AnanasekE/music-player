@@ -1,16 +1,15 @@
 package web
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"music-player/internal/db"
 	"music-player/internal/utils"
 	"net/http"
 	"os"
 	"slices"
+	"strings"
 )
 
 func StartServer() {
@@ -129,7 +128,8 @@ func handleAddTrack(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Song added successfully"))
 }
 
-func HandleUploadTrack(w http.ResponseWriter, r *http.Request) { //maybe lol idk if it works
+func handleUploadTrack(w http.ResponseWriter, r *http.Request) { //maybe lol idk if it works
+	log.Default().Println("Receiving files")
 	r.Body = http.MaxBytesReader(w, r.Body, 50<<20)
 
 	err := r.ParseMultipartForm(32 << 20)
@@ -141,7 +141,7 @@ func HandleUploadTrack(w http.ResponseWriter, r *http.Request) { //maybe lol idk
 	title := r.FormValue("title")
 	author := r.FormValue("author")
 
-	fileHeaders := r.MultipartForm.File["newFile"]
+	fileHeaders := r.MultipartForm.File["file"]
 	if len(fileHeaders) == 0 {
 		http.Error(w, "No file uploaded", http.StatusBadRequest)
 		return
@@ -154,6 +154,11 @@ func HandleUploadTrack(w http.ResponseWriter, r *http.Request) { //maybe lol idk
 		http.Error(w, "Failed to save file: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	modifiedString, _ := strings.CutPrefix(savedPath, "music/")
+	audioLengthSec, err := utils.GetAudioDuration(modifiedString)
+
+	db.AddSong(db.Song{Title: title, Author: author, LengthSec: int(audioLengthSec), FilePath: modifiedString})
 
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, "Uploaded: %s (%d bytes, %s)\nTitle: %s, Author: %s\n",
