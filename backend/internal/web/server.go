@@ -1,8 +1,10 @@
 package web
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"music-player/internal/db"
 	"music-player/internal/utils"
@@ -127,10 +129,33 @@ func handleAddTrack(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Song added successfully"))
 }
 
-func handleUploadTrack(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(10 << 20)
+func HandleUploadTrack(w http.ResponseWriter, r *http.Request) { //maybe lol idk if it works
+	r.Body = http.MaxBytesReader(w, r.Body, 50<<20)
+
+	err := r.ParseMultipartForm(32 << 20)
 	if err != nil {
-		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		http.Error(w, "File too big or invalid form: "+err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	title := r.FormValue("title")
+	author := r.FormValue("author")
+
+	fileHeaders := r.MultipartForm.File["newFile"]
+	if len(fileHeaders) == 0 {
+		http.Error(w, "No file uploaded", http.StatusBadRequest)
+		return
+	}
+
+	fh := fileHeaders[0]
+
+	savedPath, size, contentType, err := utils.SaveUploadedFile(fh, os.Getenv("AUDIO_PATH")+"uploads/")
+	if err != nil {
+		http.Error(w, "Failed to save file: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintf(w, "Uploaded: %s (%d bytes, %s)\nTitle: %s, Author: %s\n",
+		savedPath, size, contentType, title, author)
 }
