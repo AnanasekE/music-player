@@ -27,7 +27,7 @@ const Track = ({track}: SongProps) => {
                         <img src={track.coverImg} alt="image" className="w-10 h-10"/>
                     ) : (
                         <Skeleton className="w-10 h-10"/>
-                    )}
+                    )}Current song:
                 </div>
                 <div className="flex flex-col truncate text-left">
                     <h3 className="truncate">{track.title}</h3>

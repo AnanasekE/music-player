@@ -67,7 +67,7 @@ function AddSong({onAdd}: AddSongProps) {
     };
 
     return (
-        <Card className="flex-1 overflow-y-auto h-full">
+        <Card className="flex-1 overflow-y-auto h-full bg-secondary">
             <CardTitle className="text-4xl m-4">Add Song</CardTitle>
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4 text-left">

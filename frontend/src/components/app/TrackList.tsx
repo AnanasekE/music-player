@@ -1,14 +1,33 @@
 import {Card, CardContent, CardTitle} from "@/components/ui/card.tsx";
 import Track, {type TrackInfo} from "@/components/app/track.tsx";
+import {Button} from "@/components/ui/button.tsx";
+import {useQueue} from "@/components/providers/queueProvider.tsx";
 
-function TrackList(props: { tracklist: TrackInfo[] | undefined}) {
+function TrackList(props: { tracklist: TrackInfo[] | undefined }) {
+    const {addToQueue} = useQueue()
     return <Card className="flex-1 overflow-y-auto h-full bg-secondary">
         <CardTitle className="text-4xl m-4">Tracks</CardTitle>
         <CardContent>
             <ol className="flex flex-col items-center">
                 {props.tracklist?.map(track =>
-                    <li key={track.title} className={"min-w-48"}>
+                    <li key={track.title} className={"min-w-48 flex flex-row items-center"}>
                         <Track track={track}/>
+                        <Button onClick={() => addToQueue(track)}>
+                            <svg width="20px" height="20px" viewBox="-2.4 -2.4 28.80 28.80" fill="none"
+                                 xmlns="http://www.w3.org/2000/svg" stroke="#FFFFFF"
+                                 transform="rotate(0)matrix(1, 0, 0, 1, 0, 0)">
+                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"
+                                   stroke="#CCCCCC" stroke-width="1.6799999999999997"></g>
+                                <g id="SVGRepo_iconCarrier">
+                                    <path d="M15 12L12 12M12 12L9 12M12 12L12 9M12 12L12 15" stroke="#FFFFFF"
+                                          stroke-width="2.16" stroke-linecap="round"></path>
+                                    <path
+                                        d="M7 3.33782C8.47087 2.48697 10.1786 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 10.1786 2.48697 8.47087 3.33782 7"
+                                        stroke="#FFFFFF" stroke-width="2.16" stroke-linecap="round"></path>
+                                </g>
+                            </svg>
+                        </Button>
                     </li>
                 )}
             </ol>
