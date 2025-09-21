@@ -4,8 +4,13 @@ import {Input} from "@/components/ui/input.tsx";
 import {Label} from "@/components/ui/label.tsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
 import {useEffect, useState} from "react";
+import {set} from "react-hook-form";
 
-function AddSong() {
+interface AddSongProps {
+    onAdd: () => void
+}
+
+function AddSong({onAdd}: AddSongProps) {
     const [possibleSongPaths, setPossibleSongPaths] = useState<string[]>([]);
     const [title, setTitle] = useState("");
     const [author, setAuthor] = useState("");
@@ -55,7 +60,10 @@ function AddSong() {
                 return res.text();
             })
             .then((msg) => console.log("Success:", msg))
-            .catch((err) => console.error(err));
+            .catch((err) => console.error(err))
+            .finally(() => {
+                onAdd()
+            });
     };
 
     return (
