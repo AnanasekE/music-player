@@ -15,6 +15,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	db.LoadTracksMetadata()
+	db.InitDB()
 	web.StartServer()
 }

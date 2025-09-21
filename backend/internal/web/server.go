@@ -84,7 +84,10 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func handleGetTracks(w http.ResponseWriter) {
-	songs := db.GetAllSongs()
+	songs, err := db.GetAllSongs()
+	if err != nil {
+		http.Error(w, "Failed to get songs from db", http.StatusInternalServerError)
+	}
 	data, err := json.Marshal(songs)
 	if err != nil {
 		http.Error(w, "Failed song marshal", http.StatusInternalServerError)
@@ -128,7 +131,7 @@ func handleAddTrack(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Song added successfully"))
 }
 
-func handleUploadTrack(w http.ResponseWriter, r *http.Request) { //maybe lol idk if it works
+func handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	log.Default().Println("Receiving files")
 	r.Body = http.MaxBytesReader(w, r.Body, 50<<20)
 

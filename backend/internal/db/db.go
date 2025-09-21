@@ -1,22 +1,21 @@
 package db
 
 import (
-	"encoding/json"
+	"database/sql"
 	"errors"
+	_ "github.com/mattn/go-sqlite3"
 	"io/fs"
+	"log"
 	"music-player/internal/utils"
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 )
 
-var (
-	tracks []Song
-	mu     sync.Mutex
-)
+var SqliteDB *sql.DB
 
 type Song struct {
+	ID        int64   `json:"id"`
 	Title     string  `json:"title"`
 	Author    string  `json:"author"`
 	LengthSec int     `json:"lengthSec"`
@@ -24,70 +23,95 @@ type Song struct {
 	CoverPath *string `json:"coverPath,omitempty"`
 }
 
-func LoadTracksMetadata() {
-	path := os.Getenv("TRACK_METADATA_JSON_PATH")
-	if path == "" {
-		panic("TRACK_METADATA_JSON_PATH not set")
+func InitDB() {
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "songs.db" // default
 	}
 
-	data, err := os.ReadFile(path)
-	utils.Check(err)
-
-	err = json.Unmarshal(data, &tracks)
-	utils.Check(err)
-}
-
-func SaveTrackMetadata() {
-	path := os.Getenv("TRACK_METADATA_JSON_PATH")
-	data, err := json.MarshalIndent(tracks, "", "  ")
-	utils.Check(err)
-
-	err = os.WriteFile(path, data, 0644)
-	utils.Check(err)
-}
-
-func AddSong(song Song) {
-	mu.Lock()
-	defer mu.Unlock()
-
-	tracks = append(tracks, song)
-	SaveTrackMetadata()
-}
-
-func RemoveSong(title string) {
-	mu.Lock()
-	defer mu.Unlock()
-
-	newTracks := make([]Song, 0, len(tracks))
-	for _, t := range tracks {
-		if t.Title != title {
-			newTracks = append(newTracks, t)
-		}
+	var err error
+	SqliteDB, err = sql.Open("sqlite3", dbPath)
+	if err != nil {
+		log.Fatal(err)
 	}
-	tracks = newTracks
 
-	SaveTrackMetadata()
+	createTable := `
+	CREATE TABLE IF NOT EXISTS songs (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		title TEXT NOT NULL,
+		author TEXT NOT NULL,
+		lengthSec INTEGER NOT NULL,
+		filePath TEXT NOT NULL UNIQUE,
+		coverPath TEXT
+	);`
+
+	_, err = SqliteDB.Exec(createTable)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
-func GetSongData(title string) *Song {
-	mu.Lock()
-	defer mu.Unlock()
-
-	for _, track := range tracks {
-		if track.Title == title {
-			return &track
-		}
+func AddSong(song Song) error {
+	stmt, err := SqliteDB.Prepare(`
+	INSERT INTO songs (title, author, lengthSec, filePath, coverPath)
+	VALUES (?, ?, ?, ?, ?)`)
+	if err != nil {
+		return err
 	}
+	defer stmt.Close()
+
+	res, err := stmt.Exec(song.Title, song.Author, song.LengthSec, song.FilePath, song.CoverPath)
+	if err != nil {
+		return err
+	}
+
+	song.ID, _ = res.LastInsertId()
 	return nil
 }
 
-func GetAllSongs() []Song {
-	mu.Lock()
-	defer mu.Unlock()
+func RemoveSong(id int64) error {
+	_, err := SqliteDB.Exec(`DELETE FROM songs WHERE id = ?`, id)
+	return err
+}
 
-	copyTracks := make([]Song, len(tracks))
-	copy(copyTracks, tracks)
-	return copyTracks
+func GetSongByID(id int64) (*Song, error) {
+	var s Song
+	err := SqliteDB.QueryRow(`SELECT id, title, author, lengthSec, filePath, coverPath FROM songs WHERE id = ?`, id).
+		Scan(&s.ID, &s.Title, &s.Author, &s.LengthSec, &s.FilePath, &s.CoverPath)
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
+func GetSongByTitle(title string) (*Song, error) {
+	var s Song
+	err := SqliteDB.QueryRow(`SELECT id, title, author, lengthSec, filePath, coverPath FROM songs WHERE title = ?`, title).
+		Scan(&s.ID, &s.Title, &s.Author, &s.LengthSec, &s.FilePath, &s.CoverPath)
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
+func GetAllSongs() ([]Song, error) {
+	rows, err := SqliteDB.Query(`SELECT id, title, author, lengthSec, filePath, coverPath FROM songs`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tracks []Song
+	for rows.Next() {
+		var s Song
+		err := rows.Scan(&s.ID, &s.Title, &s.Author, &s.LengthSec, &s.FilePath, &s.CoverPath)
+		if err != nil {
+			return nil, err
+		}
+		tracks = append(tracks, s)
+	}
+
+	return tracks, nil
 }
 
 func GetAllSongPaths() []string {
@@ -109,7 +133,11 @@ func GetAllSongPaths() []string {
 
 func GetNotAddedSongPaths() []string {
 	paths := GetAllSongPaths()
-	allSongs := GetAllSongs()
+	allSongs, err := GetAllSongs()
+	if err != nil {
+		log.Println("Failed to get not added song paths")
+		return make([]string, 0)
+	}
 
 	addedPaths := make(map[string]struct{})
 	for _, song := range allSongs {
