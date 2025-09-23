@@ -6,7 +6,8 @@ interface QueueContextType {
     queue: TrackInfo[];
     current: TrackInfo | null;
     addToQueue: (track: TrackInfo) => void;
-    removeFromQueue: (track: TrackInfo) => void;
+    removeAllFromQueue: (track: TrackInfo) => void;
+    removeByIndex: (index: number) => void;
     clearQueue: () => void;
     setCurrent: (track: TrackInfo) => void;
     playNext: () => void;
@@ -17,13 +18,16 @@ const QueueContext = createContext<QueueContextType>({
     current: null,
     addToQueue: () => {
     },
-    removeFromQueue: () => {
+    removeAllFromQueue: () => {
     },
     clearQueue: () => {
     },
     setCurrent: () => {
     },
     playNext: () => {
+    },
+    removeByIndex: () => {
+
     }
 });
 
@@ -39,9 +43,9 @@ export function QueueProvider({children}: { children: React.ReactNode }) {
         }
     };
 
-    const removeFromQueue = (track: TrackInfo) => {
-        setQueue((prev) => prev.filter((t) => t.filePath !== track.filePath));
-        if (current?.filePath === track.filePath) {
+    const removeAllFromQueue = (track: TrackInfo) => {
+        setQueue((prev) => prev.filter((t) => t.id !== track.id));
+        if (current?.id === track.id) {
             setCurrent(null); // clear current if it was removed
         }
     };
@@ -55,9 +59,14 @@ export function QueueProvider({children}: { children: React.ReactNode }) {
         setCurrent(queue[0] as TrackInfo) // force for typescript as cannot be undefined
         setQueue(queue.slice(1, queue.length))
     }
+
+    const removeByIndex = (index:number) => {
+        setQueue((prev) => prev.filter((_, i) => i !== index));
+    }
+
     return (
         <QueueContext.Provider
-            value={{queue, current, addToQueue, removeFromQueue, clearQueue, setCurrent, playNext}}
+            value={{queue, current, addToQueue, removeAllFromQueue, clearQueue, setCurrent, playNext, removeByIndex}}
         >
             {children}
         </QueueContext.Provider>

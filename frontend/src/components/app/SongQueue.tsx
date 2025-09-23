@@ -4,7 +4,7 @@ import {Button} from "@/components/ui/button.tsx";
 import Track from "@/components/app/track.tsx";
 
 function SongQueue() {
-    const {queue, clearQueue, current} = useQueue()
+    const {queue, clearQueue, current, removeByIndex} = useQueue()
     return <Card className={"flex-1 overflow-y-auto h-full bg-secondary"}>
         <CardTitle className="text-4xl m-4">Song Queue</CardTitle>
         <CardContent>
@@ -18,9 +18,12 @@ function SongQueue() {
                 </>
             )}
             <br/>
-            <div>
-                {queue.map(track =>
-                    <Track track={track}/>
+            <div className={""}>
+                {queue.map((track, index) =>
+                    <div className={"flex flex-row items-center"}>
+                        <Track track={track}/>
+                        {/*<Button onClick={() => removeByIndex(index)}>Remove</Button>*/}
+                    </div>
                 )}
             </div>
         </CardContent>

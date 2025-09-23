@@ -38,7 +38,6 @@ export function App() {
 
     return (
         <div className="h-screen flex flex-col px-8 pb-8 text-center relative z-10 bg-background text-foreground w-screen">
-            <ThemeSwitcher/>
             <NavigationMenu className={"max-h-10 p-6"}>
                 <NavigationMenuLink>
                     <Dialog>
@@ -49,7 +48,15 @@ export function App() {
                         </DialogContent>
                     </Dialog>
                 </NavigationMenuLink>
-                <NavigationMenuLink>Themes</NavigationMenuLink>
+                <NavigationMenuLink>
+                    <Dialog>
+                        <DialogTitle className={"sr-only"}></DialogTitle>
+                        <DialogTrigger>Themes</DialogTrigger>
+                        <DialogContent className="bg-transparent shadow-none p-0 border-0">
+                            <ThemeSwitcher/>
+                        </DialogContent>
+                    </Dialog>
+                    </NavigationMenuLink>
             </NavigationMenu>
             <div className="flex-1 grid grid-cols-3 gap-4 overflow-hidden w-full">
                 <div className="overflow-y-auto">
