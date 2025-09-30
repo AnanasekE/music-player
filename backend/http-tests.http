@@ -1,0 +1,10 @@
+### GET tracks
+GET localhost:8080/tracks
+### GET all paths
+GET localhost:8080/tracks/paths
+### GET track info by id
+GET localhost:8080/tracks/1
+### POST add a track - multipart or add from existing files
+POST localhost:8080/tracks
+### DELETE deletes a song
+DELETE localhost:8080/tracks/1
