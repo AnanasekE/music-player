@@ -54,7 +54,7 @@ func InitDB() {
 func AddSong(song Song) error {
 	stmt, err := SqliteDB.Prepare(`
 	INSERT INTO songs (title, author, lengthSec, filePath, coverPath)
-	VALUES (?, ?, ?, ?, ?)`)
+	VALUES (?, ?, ?, ?, ?) `)
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func SaveFile(fileName string, fileData []byte) error {
 	audioPath := os.Getenv("AUDIO_PATH")
 	_, err := os.Stat(audioPath + fileName)
 	if errors.Is(err, os.ErrNotExist) {
-		return errors.New("File already exists")
+		return errors.New("file already exists")
 	}
 	os.WriteFile(audioPath+fileName, fileData, 0644)
 	return nil
