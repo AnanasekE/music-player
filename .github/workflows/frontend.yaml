@@ -16,8 +16,6 @@ jobs:
 
       - run: bun install
         working-directory: ./frontend
-      - run: bun index.ts
-        working-directory: ./frontend
       - run: bun run build
         working-directory: ./frontend
 
