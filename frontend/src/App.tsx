@@ -1,6 +1,5 @@
 import "./index.css";
-import {useEffect, useState} from "react";
-import {type TrackInfo} from "@/components/app/track.tsx";
+import {useEffect} from "react";
 import TrackList from "@/components/app/TrackList.tsx";
 import AudioPlayer from "@/components/app/AudioPlayer.tsx";
 import Playlists from "@/components/app/Playlists.tsx";
