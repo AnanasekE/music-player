@@ -9,16 +9,51 @@ import (
 	"net/http"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 )
 
-// http track handler
-func handleTracks(w http.ResponseWriter, r *http.Request) {
+func trackHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		handleGetTracks(w)
 	case http.MethodPost:
-		handleUploadTrack(w, r)
+		contentType := r.Header.Get("Content-type")
+		switch contentType {
+		case "application/json":
+			handleAddTrack(w, r)
+		case "multipart/form-data":
+			handleUploadTrack(w, r)
+		}
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func handleTracksByID(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	if idStr == "" {
+		http.Error(w, "Track ID required", http.StatusBadRequest)
+		return
+	}
+	idStrInt, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid song id", http.StatusBadRequest)
+	}
+	switch r.Method {
+	case http.MethodGet:
+		song, err := db.GetSongByID(int64(idStrInt))
+		if err != nil {
+			http.Error(w, "Song not found", http.StatusInternalServerError)
+		}
+		data, err := json.Marshal(song)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(data))
+	case http.MethodDelete:
+		http.Error(w, "Not Implemented", http.StatusNotImplemented)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -37,15 +72,21 @@ func handleGetTracks(w http.ResponseWriter) {
 	w.Write([]byte(data))
 }
 
-func handleGetAudioPaths(w http.ResponseWriter) {
-	paths := db.GetNotAddedSongPaths()
-	data, err := json.Marshal(paths)
-	utils.Check(err)
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(data))
+func getAudioPathsHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		paths := db.GetNotAddedSongPaths()
+		data, err := json.Marshal(paths)
+		utils.Check(err)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(data))
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
 }
 
 func handleAddTrack(w http.ResponseWriter, r *http.Request) {
+	// TODO: send added song back to the server
 	err := r.ParseMultipartForm(10 << 20)
 	if err != nil {
 		http.Error(w, "Unable to parse form", http.StatusBadRequest)
@@ -98,7 +139,7 @@ func handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No file uploaded", http.StatusBadRequest)
 		return
 	}
-
+	// TODO: update to allow more than 1 header
 	fh := fileHeaders[0]
 
 	savedPath, size, contentType, err := utils.SaveUploadedFile(fh, os.Getenv("AUDIO_PATH")+"uploads/")
@@ -110,7 +151,10 @@ func handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	modifiedString, _ := strings.CutPrefix(savedPath, "music/")
 	audioLengthSec, err := utils.GetAudioDuration(modifiedString)
 
-	db.AddSong(db.Song{Title: title, Author: author, LengthSec: int(audioLengthSec), FilePath: modifiedString})
+	err = db.AddSong(db.Song{Title: title, Author: author, LengthSec: int(audioLengthSec), FilePath: modifiedString})
+	if err != nil {
+		http.Error(w, "Failed to add song", http.StatusInternalServerError)
+	}
 
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, "Uploaded: %s (%d bytes, %s)\nTitle: %s, Author: %s\n",
