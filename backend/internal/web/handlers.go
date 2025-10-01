@@ -171,3 +171,14 @@ func writeJSON(w http.ResponseWriter, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(data)
 }
+
+func playlistHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+	case http.MethodPost:
+	case http.MethodPut:
+	}
+}
+func playlistIdHandler(w http.ResponseWriter, r *http.Request) {
+
+}

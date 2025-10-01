@@ -27,6 +27,8 @@ func registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/tracks", trackHandler)
 	mux.HandleFunc("/tracks/paths", getAudioPathsHandler)
 	mux.HandleFunc("/tracks/{id}", handleTracksByID)
+	mux.HandleFunc("/playlists", playlistHandler)
+	mux.HandleFunc("/playlists/{id}", playlistIdHandler)
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
