@@ -10,14 +10,17 @@ import {createRoot} from "react-dom/client";
 import {App} from "./App";
 import {ThemeProvider} from "@/components/providers/themeProvider.tsx";
 import {QueueProvider} from "@/components/providers/queueProvider.tsx";
+import {TracksProvider} from "@/components/providers/tracksProvider.tsx";
 
 const elem = document.getElementById("root")!;
 const app = (
     <StrictMode>
         <ThemeProvider>
-            <QueueProvider>
-                <App/>
-            </QueueProvider>
+            <TracksProvider>
+                <QueueProvider>
+                    <App/>
+                </QueueProvider>
+            </TracksProvider>
         </ThemeProvider>
     </StrictMode>
 );

@@ -12,27 +12,7 @@ import SongQueue from "@/components/app/SongQueue.tsx";
 
 
 export function App() {
-    const [tracklist, setTracklist] = useState<TrackInfo[]>();
-
-    const fetchTracks = () => {
-        fetch("http://localhost:8080/tracks")
-            .then((res) => res.json())
-            .then((json: TrackInfo[]) => {
-                const tracks: TrackInfo[] = json.map((track) => ({
-                    id: track.id,
-                    title: track.title,
-                    author: track.author,
-                    coverImg: track.coverImg ?? "https://placehold.net/default.png",
-                    lengthSec: track.lengthSec,
-                    filePath: track.filePath,
-                }));
-                setTracklist(tracks);
-            })
-            .catch((err) => console.error("Failed to fetch tracks:", err));
-    };
-
     useEffect(() => {
-        fetchTracks();
         document.documentElement.classList.add("dark");
     }, []);
 
@@ -44,7 +24,7 @@ export function App() {
                         <DialogTitle className={"sr-only"}></DialogTitle>
                         <DialogTrigger>Add Song</DialogTrigger>
                         <DialogContent className="bg-transparent shadow-none p-0 border-0">
-                            <AddSong onAdd={fetchTracks}/>
+                            <AddSong/>
                         </DialogContent>
                     </Dialog>
                 </NavigationMenuLink>
@@ -64,7 +44,7 @@ export function App() {
                 </div>
 
                 <div className="overflow-y-auto">
-                    <TrackList tracklist={tracklist}/>
+                    <TrackList/>
                 </div>
 
                 <div className="overflow-y-auto">

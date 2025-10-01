@@ -5,12 +5,13 @@ import {Label} from "@/components/ui/label.tsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
 import {useEffect, useState} from "react";
 import {set} from "react-hook-form";
+import {useTracks} from "@/components/providers/tracksProvider.tsx";
 
 interface AddSongProps {
     onAdd: () => void
 }
 
-function AddSong({onAdd}: AddSongProps) {
+function AddSong() {
     const [possibleSongPaths, setPossibleSongPaths] = useState<string[]>([]);
     const [title, setTitle] = useState("");
     const [author, setAuthor] = useState("");
@@ -18,8 +19,10 @@ function AddSong({onAdd}: AddSongProps) {
     const [filePath, setFilePath] = useState<string>(""); // from server
     const [newFile, setNewFile] = useState<File | null>(null); // user-uploaded file
 
+    const {refetch} = useTracks();
+
     useEffect(() => {
-        fetch("http://localhost:8080/audio-paths")
+        fetch("http://localhost:8080/tracks/paths")
             .then((res) => res.json())
             .then((pathList: string[]) => setPossibleSongPaths(pathList))
             .catch((err) => console.error("Failed to fetch audio paths:", err));
@@ -41,17 +44,13 @@ function AddSong({onAdd}: AddSongProps) {
             formData.append("cover", cover);
         }
 
-        let endpoint = "";
-
         if (newFile) {
             formData.append("file", newFile);
-            endpoint = "/upload-track";
         } else if (filePath) {
             formData.append("filePath", filePath);
-            endpoint = "/add-track";
         }
 
-        fetch(`http://localhost:8080${endpoint}`, {
+        fetch(`http://localhost:8080/tracks`, {
             method: "POST",
             body: formData,
         })
@@ -62,7 +61,7 @@ function AddSong({onAdd}: AddSongProps) {
             .then((msg) => console.log("Success:", msg))
             .catch((err) => console.error(err))
             .finally(() => {
-                onAdd()
+                refetch()
             });
     };
 

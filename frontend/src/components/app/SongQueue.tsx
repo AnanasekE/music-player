@@ -22,7 +22,7 @@ function SongQueue() {
                 {queue.map((track, index) =>
                     <div className={"flex flex-row items-center"}>
                         <Track track={track}/>
-                        {/*<Button onClick={() => removeByIndex(index)}>Remove</Button>*/}
+                        <Button onClick={() => removeByIndex(index)}>X</Button>
                     </div>
                 )}
             </div>
