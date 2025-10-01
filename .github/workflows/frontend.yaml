@@ -15,12 +15,15 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - run: bun install
+        working-directory: ./frontend
       - run: bun index.ts
+        working-directory: ./frontend
       - run: bun run build
+        working-directory: ./frontend
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
           path: |
-            dist
+            ./frontend/dist
