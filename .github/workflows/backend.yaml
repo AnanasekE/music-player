@@ -15,7 +15,7 @@ jobs:
       - name: Use go 25.x
         uses: actions/setup-go@v6
         with:
-          go-version: '1.20'
+          go-version: '1.24.6'
 
       - run: go build -o backend main.go
         working-directory: ./backend
