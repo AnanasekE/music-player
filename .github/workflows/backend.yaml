@@ -12,7 +12,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         
-      - name: Use go 25.x
+      - name: Use go 24.6
         uses: actions/setup-go@v6
         with:
           go-version: '1.24.6'
