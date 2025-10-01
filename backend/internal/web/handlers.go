@@ -3,7 +3,7 @@ package web
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"mime/multipart"
 	"music-player/internal/db"
 	"music-player/internal/utils"
 	"net/http"
@@ -18,13 +18,7 @@ func trackHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		handleGetTracks(w)
 	case http.MethodPost:
-		contentType := r.Header.Get("Content-type")
-		switch contentType {
-		case "application/json":
-			handleAddTrack(w, r)
-		case "multipart/form-data":
-			handleUploadTrack(w, r)
-		}
+		handleCreateTrack(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -46,12 +40,7 @@ func handleTracksByID(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			http.Error(w, "Song not found", http.StatusInternalServerError)
 		}
-		data, err := json.Marshal(song)
-		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(data))
+		writeJSON(w, song)
 	case http.MethodDelete:
 		http.Error(w, "Not Implemented", http.StatusNotImplemented)
 	default:
@@ -64,99 +53,121 @@ func handleGetTracks(w http.ResponseWriter) {
 	if err != nil {
 		http.Error(w, "Failed to get songs from db", http.StatusInternalServerError)
 	}
-	data, err := json.Marshal(songs)
-	if err != nil {
-		http.Error(w, "Failed song marshal", http.StatusInternalServerError)
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(data))
+	writeJSON(w, songs)
 }
 
 func getAudioPathsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		paths := db.GetNotAddedSongPaths()
-		data, err := json.Marshal(paths)
-		utils.Check(err)
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(data))
+		writeJSON(w, paths)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func handleAddTrack(w http.ResponseWriter, r *http.Request) {
-	// TODO: send added song back to the server
-	err := r.ParseMultipartForm(10 << 20)
+// Can handle uploaded files or existing filePaths
+func handleCreateTrack(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseMultipartForm(50 << 20) // allow up to 50MB
 	if err != nil {
-		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		http.Error(w, "Invalid form: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	title := r.FormValue("title")
 	author := r.FormValue("author")
-	filePath := r.FormValue("filePath")
+	filePath := r.FormValue("filePath") // for existing files
 	cover := r.FormValue("cover")
 
-	notAddedSongs := db.GetNotAddedSongPaths()
+	var created []db.Song
 
+	// Case 1: user uploads new file(s)
+	if files := r.MultipartForm.File["file"]; len(files) > 0 {
+		for _, fh := range files {
+			song, err := processUploadedFile(fh, title, author, cover)
+			if err != nil {
+				http.Error(w, "Failed to process upload: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			created = append(created, song)
+		}
+		writeJSON(w, created)
+		return
+	}
+
+	// Case 2: use existing filePath
+	if filePath != "" {
+		song, err := processExistingFile(filePath, title, author, cover)
+		if err != nil {
+			http.Error(w, "Failed to add existing track: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		created = append(created, song)
+		writeJSON(w, created)
+		return
+	}
+
+	http.Error(w, "No file uploaded or filePath provided", http.StatusBadRequest)
+}
+
+func processUploadedFile(fh *multipart.FileHeader, title, author, cover string) (db.Song, error) {
+	savedPath, _, _, err := utils.SaveUploadedFile(fh, os.Getenv("AUDIO_PATH")+"uploads/")
+	if err != nil {
+		return db.Song{}, err
+	}
+
+	modifiedPath, _ := strings.CutPrefix(savedPath, "music/")
+	audioLengthSec, err := utils.GetAudioDuration(modifiedPath)
+	if err != nil {
+		return db.Song{}, err
+	}
+
+	song := db.Song{
+		Title:     title,
+		Author:    author,
+		FilePath:  modifiedPath,
+		LengthSec: int(audioLengthSec),
+	}
+	if cover != "" {
+		song.CoverPath = &cover
+	}
+
+	if err := db.AddSong(song); err != nil {
+		return db.Song{}, err
+	}
+
+	return song, nil
+}
+
+func processExistingFile(filePath, title, author, cover string) (db.Song, error) {
+	notAddedSongs := db.GetNotAddedSongPaths()
 	if !slices.Contains(notAddedSongs, filePath) {
-		http.Error(w, "Song alread added", http.StatusInternalServerError)
+		return db.Song{}, fmt.Errorf("song already added")
 	}
 
 	audioLengthSec, err := utils.GetAudioDuration(filePath)
-
 	if err != nil {
-		log.Println(err)
-		http.Error(w, "Audio length check failed", http.StatusInternalServerError)
-		return
+		return db.Song{}, err
 	}
 
+	song := db.Song{
+		Title:     title,
+		Author:    author,
+		FilePath:  filePath,
+		LengthSec: int(audioLengthSec),
+	}
 	if cover != "" {
-		db.AddSong(db.Song{Title: title, Author: author, FilePath: filePath, LengthSec: int(audioLengthSec), CoverPath: &cover})
-	} else {
-		db.AddSong(db.Song{Title: title, Author: author, FilePath: filePath, LengthSec: int(audioLengthSec)})
+		song.CoverPath = &cover
 	}
 
-	w.Write([]byte("Song added successfully"))
+	if err := db.AddSong(song); err != nil {
+		return db.Song{}, err
+	}
+
+	return song, nil
 }
 
-func handleUploadTrack(w http.ResponseWriter, r *http.Request) {
-	log.Default().Println("Receiving files")
-	r.Body = http.MaxBytesReader(w, r.Body, 50<<20)
-
-	err := r.ParseMultipartForm(32 << 20)
-	if err != nil {
-		http.Error(w, "File too big or invalid form: "+err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	title := r.FormValue("title")
-	author := r.FormValue("author")
-
-	fileHeaders := r.MultipartForm.File["file"]
-	if len(fileHeaders) == 0 {
-		http.Error(w, "No file uploaded", http.StatusBadRequest)
-		return
-	}
-	// TODO: update to allow more than 1 header
-	fh := fileHeaders[0]
-
-	savedPath, size, contentType, err := utils.SaveUploadedFile(fh, os.Getenv("AUDIO_PATH")+"uploads/")
-	if err != nil {
-		http.Error(w, "Failed to save file: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	modifiedString, _ := strings.CutPrefix(savedPath, "music/")
-	audioLengthSec, err := utils.GetAudioDuration(modifiedString)
-
-	err = db.AddSong(db.Song{Title: title, Author: author, LengthSec: int(audioLengthSec), FilePath: modifiedString})
-	if err != nil {
-		http.Error(w, "Failed to add song", http.StatusInternalServerError)
-	}
-
-	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, "Uploaded: %s (%d bytes, %s)\nTitle: %s, Author: %s\n",
-		savedPath, size, contentType, title, author)
+func writeJSON(w http.ResponseWriter, data any) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(data)
 }
